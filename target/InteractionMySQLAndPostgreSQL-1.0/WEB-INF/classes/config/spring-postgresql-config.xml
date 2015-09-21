@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+http://www.springframework.org/schema/tx  http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc.xsd">
+
+    <context:component-scan base-package="com.spilnasprava.controller"/>
+    <mvc:annotation-driven/>
+    <context:property-placeholder location="classpath:dbconfig.properties"/>
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <bean id="dataSourcePostgreSQL" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="${postgresql.jdbc.driverClassName}"/>
+        <property name="url" value="${postgresql.jdbc.url}"/>
+        <property name="username" value="${postgresql.jdbc.username}"/>
+        <property name="password" value="${postgresql.jdbc.password}"/>
+    </bean>
+
+    <bean id="sessionFactoryPostgreSQL" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+        <property name="dataSource" ref="dataSourcePostgreSQL"/>
+        <property name="packagesToScan">
+            <list>
+                <value>com.spilnasprava.entity.postgresql</value>
+            </list>
+        </property>
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">${postgresql.hibernate.dialect}</prop>
+                <prop key="hibernate.show_sql">${hibernate.show_sql:false}</prop>
+                <prop key="hibernate.format_sql">${hibernate.format_sql:false}</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+        <property name="sessionFactory" ref="sessionFactoryPostgreSQL"/>
+    </bean>
+
+    <bean id="persistenceExceptionTranslationPostProcessor"
+          class="org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor"/>
+
+    <bean id="areaDao" class="com.spilnasprava.business.dao.impl.AreaDaoImpl"></bean>
+    <bean id="areaSrvice" class="com.spilnasprava.business.service.impl.AreaServiceImpl"></bean>
+
+</beans>
