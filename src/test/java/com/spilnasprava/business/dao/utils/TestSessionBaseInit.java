@@ -1,5 +1,4 @@
-package com.spilnasprava.business.dao.utils;
-
+import com.spilnasprava.business.dao.utils.SessionBaseInit;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.junit.Test;

@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="InteractionMySQLAndPostgreSQLGr:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <root id="archive" name="InteractionMySQLAndPostgreSQL-1.0.war">
+      <element id="artifact" artifact-name="InteractionMySQLAndPostgreSQLGr:war exploded" />
+    </root>
+  </artifact>
+</component>

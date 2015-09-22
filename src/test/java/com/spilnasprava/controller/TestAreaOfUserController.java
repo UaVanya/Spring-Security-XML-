@@ -1,7 +1,6 @@
-package com.spilnasprava.controller;
-
 import com.spilnasprava.business.service.AreaService;
 import com.spilnasprava.business.service.UserService;
+import com.spilnasprava.controller.AreaOfUserController;
 import com.spilnasprava.entity.mysql.User;
 import com.spilnasprava.entity.mysql.UserKey;
 import com.spilnasprava.entity.postgresql.Area;
@@ -13,7 +12,8 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.io.IOException;
@@ -24,24 +24,21 @@ import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
-import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
 /**
  * Created by VJKL on 15.09.2015.
- * Checks the methods of this class
+ * Checks the methods of AreaOfUserController.class
  */
 @RunWith(MockitoJUnitRunner.class)
 public class TestAreaOfUserController {
-
     private static Map<User, Area> userMap = new HashMap<User, Area>();
     private static User user = new User();
     private static UserKey userKey = new UserKey();
     private static Area area = new Area();
     private static AreaKey areaKey = new AreaKey();
-
-    @Mock
-    private Authentication auth;
+    private static List<User> userList = new ArrayList<User>();
+    private static List<Area> areaList = new ArrayList<Area>();
 
     @Mock
     private UserService userService;
@@ -52,9 +49,13 @@ public class TestAreaOfUserController {
     @InjectMocks
     private AreaOfUserController controller;
 
+    /**
+     * Initializes the necessary objects for testing
+     */
     @BeforeClass
     public static void init() {
         String keyId = "key-test";
+
         user.setId(1l);
         user.setName("NameTest");
         user.setEmail("EmailTest");
@@ -70,11 +71,14 @@ public class TestAreaOfUserController {
         areaKey.setArea(area);
         area.setAreaKeys(areaKey);
 
+        userList.add(user);
+        areaList.add(area);
+
         userMap.put(user, area);
     }
 
     @Test
-    public void login() {
+    public void testLogin() {
         String messagesAuthenticationFailure = "Invalid username and password!";
         String messagesLogoutSuccess = "You've been logged out successfully.";
 
@@ -88,10 +92,6 @@ public class TestAreaOfUserController {
 
     @Test
     public void testAddUser() throws IOException {
-        List<User> userList = new ArrayList<User>();
-        userList.add(user);
-        List<Area> areaList = new ArrayList<Area>();
-        areaList.add(area);
         when(userService.getAllUsers()).thenReturn(userList);
         when(areaService.getAllAreas()).thenReturn(areaList);
 
@@ -101,10 +101,6 @@ public class TestAreaOfUserController {
 
     @Test
     public void testGetUsers() throws IOException {
-        List<User> userList = new ArrayList<User>();
-        userList.add(user);
-        List<Area> areaList = new ArrayList<Area>();
-        areaList.add(area);
         when(userService.getAllUsers()).thenReturn(userList);
         when(areaService.getAllAreas()).thenReturn(areaList);
         Map<User, Area> userAreaMap = (Map<User, Area>) controller.getUsers().getModel().get("result");
@@ -113,10 +109,6 @@ public class TestAreaOfUserController {
 
     @Test
     public void testGetAllUsers() {
-        List<User> userList = new ArrayList<User>();
-        userList.add(user);
-        List<Area> areaList = new ArrayList<Area>();
-        areaList.add(area);
         when(userService.getAllUsers()).thenReturn(userList);
         when(areaService.getAllAreas()).thenReturn(areaList);
         Map<User, Area> userAreaMap = controller.getAllUsers();
@@ -126,12 +118,12 @@ public class TestAreaOfUserController {
 
     @Test
     public void testGetUser() {
-//        when(userService.getUserByName(user.getNickname())).thenReturn(user);
-//        when(areaService.getArea(area.getAreaKeys().getKey())).thenReturn(area);
-//        when(auth.getName()).thenReturn("NameTest");
-//        Map<User, Area> userAreaMap = (Map<User, Area>) controller.getUser().getModel().get("result");
-//
-//        assertThat(userMap, is(userAreaMap));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user.getName(), ""));
+        when(userService.getUserByName(user.getName())).thenReturn(user);
+        when(areaService.getArea(area.getAreaKeys().getKey())).thenReturn(area);
+        Map<User, Area> userAreaMap = (Map<User, Area>) controller.getUser().getModel().get("result");
+
+        assertThat(userMap, is(userAreaMap));
     }
 
     @Test

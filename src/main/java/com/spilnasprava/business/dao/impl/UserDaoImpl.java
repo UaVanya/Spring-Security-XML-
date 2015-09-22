@@ -3,11 +3,8 @@ package com.spilnasprava.business.dao.impl;
 import com.spilnasprava.business.dao.utils.SessionBaseInit;
 import com.spilnasprava.business.dao.UserDAO;
 import com.spilnasprava.entity.mysql.User;
-import com.spilnasprava.entity.mysql.UserKey;
-import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,16 +32,7 @@ public class UserDaoImpl extends SessionBaseInit implements UserDAO {
      * @return list User
      */
     public List<User> getAllUsers() {
-        Session session = getSessionMySQL();
-        List<User> userList = new ArrayList<User>();
-        List<User> users = (List<User>) session.createCriteria(User.class).list();
-        List<UserKey> userKeys = (List<UserKey>) session.createCriteria(UserKey.class).list();
-        for (UserKey userKey : userKeys) {
-            User user = userKey.getUser();
-            user.setUserKey(userKey);
-            userList.add(user);
-        }
-        return userList;
+        return (List<User>) getSessionMySQL().createCriteria(User.class).list();
     }
 
     /**
