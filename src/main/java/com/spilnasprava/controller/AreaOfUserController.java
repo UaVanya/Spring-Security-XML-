@@ -7,7 +7,6 @@ import com.spilnasprava.entity.mysql.UserKey;
 import com.spilnasprava.entity.postgresql.Area;
 import com.spilnasprava.entity.postgresql.AreaKey;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
