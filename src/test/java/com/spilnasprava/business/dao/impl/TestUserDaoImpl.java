@@ -1,12 +1,10 @@
-package com.spilnasprava.business.dao.impl;
-
-import com.spilnasprava.business.dao.UserDAO;
-import com.spilnasprava.business.dao.utils.SessionBaseInit;
+import com.spilnasprava.business.dao.impl.UserDaoImpl;
 import com.spilnasprava.entity.mysql.User;
 import com.spilnasprava.entity.mysql.UserKey;
+import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.criterion.Restrictions;
+import org.hibernate.criterion.Criterion;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,59 +25,66 @@ import java.util.List;
  */
 @RunWith(MockitoJUnitRunner.class)
 public class TestUserDaoImpl {
+    private static long id = 1l;
     private static User user = new User();
     private static UserKey userKey = new UserKey();
+    private static List<User> userList = new ArrayList<User>();
 
     @Mock
-    private Session session;
+    private Session currentSession;
 
     @Mock
-    private SessionBaseInit sessionBaseInit;
+    private Criteria criteria;
+
+    @Mock
+    private Criteria add;
+
+    @Mock
+    private SessionFactory sessionFactoryMySQL;
 
     @InjectMocks
     private UserDaoImpl userDao;
 
+    /**
+     * Initializes the necessary objects for testing
+     */
     @BeforeClass
     public static void init() {
-        user.setId(1l);
+        user.setId(id);
+        user.setNickname("NickTest");
         user.setName("NameTest");
         user.setEmail("EmailTest");
-        userKey.setId(1l);
+        userKey.setId(id);
         userKey.setKey("key-test");
         userKey.setUser(user);
         user.setUserKey(userKey);
-    }
 
+        userList.add(user);
+    }
 
     @Test
     public void testGetUserByName() {
-//        List userList = new ArrayList<User>();
-//        userList.add(user);
-//        when(userDao.getSessionMySQL()).thenReturn(session);
-//        when(userDao.getSessionMySQL().createCriteria(User.class).add(Restrictions.eq("nickname", user.getNickname())).list()).thenReturn(userList);
-//
-//        assertThat(user, is(userDao.getUserByName(user.getNickname())));
+        when(sessionFactoryMySQL.getCurrentSession()).thenReturn(currentSession);
+        when(currentSession.createCriteria(User.class)).thenReturn(criteria);
+        when(criteria.add((Criterion) anyObject())).thenReturn(add);
+        when(add.list()).thenReturn(userList);
+
+        assertThat(user, is(userDao.getUserByName(user.getNickname())));
     }
 
     @Test
-    public void testGetAllUser() {
-//        List<User> userList = new ArrayList<>();
-//        userList.add(user);
-//        when(userDao.getAllUsers()).thenReturn(userList);
+    public void testGetAllUsers() {
+        when(sessionFactoryMySQL.getCurrentSession()).thenReturn(currentSession);
+        when(currentSession.createCriteria(User.class)).thenReturn(criteria);
+        when(criteria.list()).thenReturn(userList);
 
-//        when(userDao.getSessionMySQL().save(user)).thenReturn(1l);
-//        assertThat(userList, is(userDao.getAllUsers()));
+        assertThat(userDao.getAllUsers(), is(userList));
     }
 
     @Test
     public void testAddUser() {
-//        long userId = 1l;
-//        when(userDao.addUser(user)).thenReturn(userId);
-
-//        when(userDao.getSessionMySQL()).thenReturn(session);
-//        when(userDao.getSessionMySQL()
-//                .save(user))
-//                .thenReturn(1l);
-//        assertThat(userId, is(userDao.addUser(user)));
+        when(sessionFactoryMySQL.getCurrentSession()).thenReturn(currentSession);
+        when(userDao.getSessionMySQL().save(user)).thenReturn(1l);
+        assertThat(id, is(userDao.addUser(user)));
     }
 }

@@ -1,5 +1,5 @@
-package com.spilnasprava.entity.postgresql;
-
+import com.spilnasprava.entity.postgresql.Area;
+import com.spilnasprava.entity.postgresql.AreaKey;
 import com.spilnasprava.object.AreaType;
 import org.junit.Test;
 

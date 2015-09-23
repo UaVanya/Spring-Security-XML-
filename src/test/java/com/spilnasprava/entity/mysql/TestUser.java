@@ -1,5 +1,5 @@
-package com.spilnasprava.entity.mysql;
-
+import com.spilnasprava.entity.mysql.User;
+import com.spilnasprava.entity.mysql.UserKey;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
