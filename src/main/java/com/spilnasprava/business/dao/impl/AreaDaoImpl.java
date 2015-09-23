@@ -4,6 +4,7 @@ import com.spilnasprava.business.dao.AreaDAO;
 import com.spilnasprava.business.dao.utils.SessionBaseInit;
 import com.spilnasprava.entity.postgresql.Area;
 import com.spilnasprava.entity.postgresql.AreaKey;
+import org.hibernate.Session;
 import org.hibernate.criterion.Restrictions;
 
 import java.util.ArrayList;
@@ -35,8 +36,10 @@ public class AreaDaoImpl extends SessionBaseInit implements AreaDAO {
      * @return list Area
      */
     public List<Area> getAllAreas() {
+        Session session = getSessionPostgreSQL();
         List<Area> areaList = new ArrayList<Area>();
-        List<AreaKey> areaKeys = (List<AreaKey>) getSessionPostgreSQL().createCriteria(AreaKey.class).list();
+        List<Area> areas = (List<Area>) session.createCriteria(Area.class).list();
+        List<AreaKey> areaKeys = (List<AreaKey>) session.createCriteria(AreaKey.class).list();
         for (AreaKey areaKey : areaKeys) {
             Area area = areaKey.getArea();
             area.setAreaKeys(areaKey);

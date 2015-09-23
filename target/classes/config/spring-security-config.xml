@@ -5,8 +5,8 @@
     http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd">
 
     <http auto-config="true">
-        <intercept-url pattern="/admin" access="hasRole('ADMIN')"/>
-        <intercept-url pattern="/user" access="hasRole('USER') or hasRole('ADMIN')"/>
+        <intercept-url pattern="/admin" access="hasRole('ROLE_ADMIN')"/>
+        <intercept-url pattern="/user" access="hasRole('ROLE_USER')"/>
         <form-login login-page="/login" default-target-url="/user"
                     authentication-failure-url="/login?error"/>
         <logout logout-success-url="/login?logout"/>
@@ -15,8 +15,14 @@
     <authentication-manager>
         <authentication-provider>
             <jdbc-user-service data-source-ref="dataSourceMySQL"
-                               users-by-username-query="SELECT nickname as username, password, enabled FROM mysql_db.user WHERE nickname=?;"
-                               authorities-by-username-query="SELECT nickname as username, role as authority FROM mysql_db.user WHERE nickname=?;"/>
+                               users-by-username-query="SELECT nickname as username, password, 1 as enabled FROM mysql_db.user WHERE nickname=?;"
+                               authorities-by-username-query="SELECT nickname as username, 'ROLE_USER' as authority FROM mysql_db.user WHERE nickname=?;"/>
+        </authentication-provider>
+        <authentication-provider>
+            <user-service>
+                <user name="admin" password="root" authorities="ROLE_ADMIN, ROLE_USER"/>
+            </user-service>
         </authentication-provider>
     </authentication-manager>
+
 </beans:beans>
