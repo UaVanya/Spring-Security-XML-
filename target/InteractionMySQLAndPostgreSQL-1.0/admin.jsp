@@ -13,7 +13,7 @@
 <body bgcolor="#fafad2">
 <h1>Message : ${message}</h1>
 
-<c:url value="/login" var="logoutUrl"/>
+<c:url value="/login?logout" var="logoutUrl"/>
 
 <!-- csrt for log out-->
 <form action="${logoutUrl}" method="post" id="logoutForm">
@@ -75,6 +75,6 @@
         }
     %>
 </table>
-
+<div class="fb-login-button" data-max-rows="1" data-size="xlarge" data-show-faces="true" data-auto-logout-link="true"></div>
 </body>
 </html>

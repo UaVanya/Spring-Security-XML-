@@ -15,6 +15,7 @@ public class User implements Serializable {
     private String password;
     private String name;
     private String email;
+    private String facebookId;
     private UserKey userKey;
 
     /**
@@ -98,6 +99,24 @@ public class User implements Serializable {
      */
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    /**
+     *
+     * @return current id from facebook the user
+     */
+    @Column(name = "facebook_id")
+    public String getFacebookId() {
+        return facebookId;
+    }
+
+    /**
+     * Sets the id from facebook the user
+     *
+     * @param facebookId
+     */
+    public void setFacebookId(String facebookId) {
+        this.facebookId = facebookId;
     }
 
     /**

@@ -29,6 +29,7 @@ public interface UserDAO {
      * Save User in DB.
      *
      * @param user
+     * @return id user
      */
     long addUser(User user);
     }

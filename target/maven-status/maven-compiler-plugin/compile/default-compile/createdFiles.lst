@@ -1,0 +1,15 @@
+com\spilnasprava\business\dao\AreaDAO.class
+com\spilnasprava\entity\postgresql\AreaKey.class
+com\spilnasprava\controller\AreaOfUserController.class
+com\spilnasprava\business\service\UserService.class
+com\spilnasprava\business\dao\impl\UserDaoImpl.class
+com\spilnasprava\business\dao\utils\SessionBaseInit.class
+com\spilnasprava\business\service\impl\AreaServiceImpl.class
+com\spilnasprava\business\dao\UserDAO.class
+com\spilnasprava\entity\mysql\User.class
+com\spilnasprava\entity\mysql\UserKey.class
+com\spilnasprava\object\AreaType.class
+com\spilnasprava\entity\postgresql\Area.class
+com\spilnasprava\business\service\impl\UserServiceImpl.class
+com\spilnasprava\business\service\AreaService.class
+com\spilnasprava\business\dao\impl\AreaDaoImpl.class

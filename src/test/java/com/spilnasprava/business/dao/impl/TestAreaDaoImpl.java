@@ -73,6 +73,8 @@ public class TestAreaDaoImpl {
         when(currentSession.createCriteria(AreaKey.class)).thenReturn(createCriteria);
         when(createCriteria.add((Criterion) anyObject())).thenReturn(add);
         when(add.list()).thenReturn(areaKeys);
+
+        assertThat(areaDao.getArea(area.getAreaKeys().getKey()), is(area));
     }
 
     @Test

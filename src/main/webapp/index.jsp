@@ -15,6 +15,7 @@
     </style>
 </head>
 <body>
+
 <div id="login-box">
     <form action="/login.jsp" method="get" name="formLogin">
         <table>

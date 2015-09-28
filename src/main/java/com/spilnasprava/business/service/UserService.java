@@ -29,6 +29,7 @@ public interface UserService {
      * Save User in DB.
      *
      * @param user
+     * @return id user
      */
     public long addUser(User user);
 

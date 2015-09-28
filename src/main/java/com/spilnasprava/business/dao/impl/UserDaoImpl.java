@@ -39,6 +39,7 @@ public class UserDaoImpl extends SessionBaseInit implements UserDAO {
      * Save User in DB.
      *
      * @param user
+     * @return id user
      */
     public long addUser(User user) {
         return (Long) getSessionMySQL().save(user);

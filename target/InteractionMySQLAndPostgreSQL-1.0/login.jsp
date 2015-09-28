@@ -1,4 +1,6 @@
+<%@ page contentType="text/html; charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
 <html>
 <head>
     <style>
@@ -33,7 +35,7 @@
         }
     </style>
 </head>
-<body onload='document.loginForm.username.focus();'>
+<body style="text-align: center; margin: 0 auto;">
 
 <div id="login-box">
 
@@ -53,7 +55,7 @@
         <table>
             <tr>
                 <td>User:</td>
-                <td><input type="text" name="username" maxlength="45" required placeholder="Nickname"></td>
+                <td><input type="text" name="username" maxlength="45" requi` placeholder="Nickname"></td>
             </tr>
             <tr>
                 <td>Password:</td>
@@ -68,6 +70,17 @@
                value="${_csrf.token}"/>
     </form>
 </div>
+
+<sec:authorize access="!isAuthenticated()">
+    <form action="/signin" method="get" name="formFacebook">
+        <input type="submit" name="enter" value="Facebook Login"/>
+    </form>
+</sec:authorize>
+<sec:authorize access="isAuthenticated()">
+    <form action="/login?logout" method="get" name="formFacebook">
+        <input type="submit" name="enter" value="Logout"/>
+    </form>
+</sec:authorize>
 
 </body>
 </html>

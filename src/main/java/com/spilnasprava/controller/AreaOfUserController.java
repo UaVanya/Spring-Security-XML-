@@ -1,11 +1,14 @@
 package com.spilnasprava.controller;
 
+import com.restfb.DefaultFacebookClient;
+import com.restfb.Parameter;
 import com.spilnasprava.business.service.AreaService;
 import com.spilnasprava.business.service.UserService;
 import com.spilnasprava.entity.mysql.User;
 import com.spilnasprava.entity.mysql.UserKey;
 import com.spilnasprava.entity.postgresql.Area;
 import com.spilnasprava.entity.postgresql.AreaKey;
+import com.spilnasprava.object.AreaType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,7 +16,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.*;
 
 /**
@@ -26,6 +35,14 @@ public class AreaOfUserController {
     private final String messagesLogoutSuccess = "You've been logged out successfully.";
     private final String messagesProtectedPageAdmin = "This is protected page with the access level \"ROLE_ADMIN\"!";
     private final String messagesProtectedPageUser = "This is protected page with the access level \"ROLE_USER\"!";
+
+    private String accessToken;
+    private static final String SCOPE = "email,publish_actions,user_about_me,user_birthday,user_posts,manage_pages";
+    private static final String REDIRECT_URI = "http://localhost:8080/callback";
+    private static final String APP_ID = "1045832752134158";
+    private static final String APP_SECRET = "d228b4a2a074dffdc211fcf3870eb578";
+    private static final String URL_DIALOG_OAUTH = "https://www.facebook.com/dialog/oauth";
+    private static final String URL_ACCESS_TOKEN = "https://graph.facebook.com/oauth/access_token";
 
     @Autowired
     private UserService userService;
@@ -66,24 +83,26 @@ public class AreaOfUserController {
      */
     @RequestMapping(value = "registration", produces = "application/json", method = RequestMethod.POST)
     public ModelAndView addUser(@ModelAttribute User user, @ModelAttribute Area area) throws IOException {
+        Map<User, Area> userAreaMap = new HashMap<User, Area>();
         String key = UUID.randomUUID().toString();
 
         UserKey userKey = new UserKey();
         userKey.setKey(key);
         userKey.setUser(user);
         user.setUserKey(userKey);
-        userService.addUser(user);
 
-        AreaKey areaKey = new AreaKey();
-        areaKey.setKey(key);
-        areaKey.setArea(area);
-        area.setAreaKeys(areaKey);
-        areaService.addArea(area);
-
+        if (userService.addUser(user) != 0) {
+            AreaKey areaKey = new AreaKey();
+            areaKey.setKey(key);
+            areaKey.setArea(area);
+            area.setAreaKeys(areaKey);
+            areaService.addArea(area);
+            userAreaMap.put(user, area);
+        }
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject("message", "This is protected page!");
-        modelAndView.addObject("result", user);
-        modelAndView.setViewName("login");
+        modelAndView.addObject("result", userAreaMap);
+        modelAndView.setViewName("user");
         return modelAndView;
     }
 
@@ -157,5 +176,128 @@ public class AreaOfUserController {
         }
 
         return userMap;
+    }
+
+    /**
+     * Performs a redirect to the login page on Facebook
+     *
+     * @param request
+     * @param response
+     * @throws IOException
+     */
+    @RequestMapping(value = "/signin", method = RequestMethod.GET)
+    public void getSignin(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        response.setContentType("text/html");
+        response.sendRedirect(URL_DIALOG_OAUTH + "?client_id=" + APP_ID
+                + "&redirect_uri=" + REDIRECT_URI + "&scope=" + SCOPE);
+    }
+
+    /**
+     * Gets Access Token. And performed by manipulation of the user
+     *
+     * @param request
+     * @param response
+     * @return passing to the page with the access level "ROLE_USER"
+     * @throws IOException
+     * @throws FacebookException
+     */
+    @RequestMapping(value = "/callback", method = RequestMethod.GET)
+    public ModelAndView userFromFacebook(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        ModelAndView modelAndView = new ModelAndView();
+        String code = request.getParameter("code");
+        User user = null;
+        if (code == null || code.equals("")) {
+            response.sendRedirect("http://localhost:8080/login.jsp?error");
+        } else {
+            String urlAccessToken = URL_ACCESS_TOKEN + "?client_id=" + APP_ID
+                    + "&redirect_uri=" + REDIRECT_URI + "&client_secret="
+                    + APP_SECRET + "&code=" + code;
+            response.setContentType("text/html");
+
+            accessToken = getAccessToken(urlAccessToken);
+
+            user = getUserFromFacebook(accessToken);
+            User userCheck = userService.getUserByName(user.getNickname());
+            if (userCheck == null) {
+                Map<User, Area> userAreaMap = addUserFromFacebook(user);
+                modelAndView.addObject("result", userAreaMap);
+            } else modelAndView.addObject("result", getDataUser(user.getNickname()));
+        }
+        modelAndView.addObject("message", messagesProtectedPageUser);
+        modelAndView.setViewName("user");
+        return modelAndView;
+    }
+
+    /**
+     * Parsing string and pull access token user
+     *
+     * @param urlAccessToken
+     * @return access token user
+     * @throws IOException
+     */
+    public String getAccessToken(String urlAccessToken) throws IOException {
+        URL url = new URL(urlAccessToken);
+        URLConnection urlConnection = url.openConnection();
+        urlConnection.setConnectTimeout(10000);
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+
+        String inputLine;
+        StringBuilder stringBuilder = new StringBuilder();
+        while ((inputLine = bufferedReader.readLine()) != null) {
+            stringBuilder.append(inputLine + "\n");
+        }
+
+        bufferedReader.close();
+        return stringBuilder.toString().substring(13, stringBuilder.toString().indexOf('&'));
+    }
+
+    /**
+     * Save user data in DB
+     * Unites in the data user in Map<User, Area> and pass the created Map<User, Area>
+     *
+     * @param user
+     * @return data user
+     * @throws FacebookException
+     */
+    public Map<User, Area> addUserFromFacebook(User user) {
+        String key = UUID.randomUUID().toString();
+        Map<User, Area> userAreaMap = new HashMap<User, Area>();
+
+        UserKey userKey = new UserKey();
+        userKey.setKey(key);
+        userKey.setUser(user);
+        user.setUserKey(userKey);
+
+        if (userService.addUser(user) != 0) {
+            Area area = new Area();
+            area.setArea(AreaType.AREA1);
+            AreaKey areaKey = new AreaKey();
+            area.setAreaKeys(areaKey);
+            areaKey.setKey(key);
+            areaKey.setArea(area);
+            area.setAreaKeys(areaKey);
+            areaService.addArea(area);
+            userAreaMap.put(user, area);
+        }
+        return userAreaMap;
+    }
+
+    /**
+     * Pulls data user from facebook
+     *
+     * @param token
+     * @return user data from facebook
+     */
+    public User getUserFromFacebook(String token) {
+        DefaultFacebookClient facebookClient = new DefaultFacebookClient(accessToken);
+        com.restfb.types.User userRestFB = facebookClient.fetchObject("me", com.restfb.types.User.class);
+        com.restfb.types.User userEmail = facebookClient.fetchObject("me", com.restfb.types.User.class, Parameter.with("fields", "email"));
+
+        User user = new User();
+        user.setNickname(userRestFB.getName());
+        user.setPassword(userEmail.getEmail());
+        user.setFacebookId(userRestFB.getId().toString());
+        return user;
     }
 }
