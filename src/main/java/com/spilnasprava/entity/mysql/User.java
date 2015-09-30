@@ -1,8 +1,9 @@
 package com.spilnasprava.entity.mysql;
 
+import com.spilnasprava.object.UserRole;
+
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.Set;
 
 /**
  * Create entity for table user with MySQL DB.
@@ -16,6 +17,8 @@ public class User implements Serializable {
     private String name;
     private String email;
     private String facebookId;
+    private byte enabled = 1;
+    private String role = UserRole.ROLE_USER.name();
     private UserKey userKey;
 
     /**
@@ -102,7 +105,6 @@ public class User implements Serializable {
     }
 
     /**
-     *
      * @return current id from facebook the user
      */
     @Column(name = "facebook_id")
@@ -118,6 +120,39 @@ public class User implements Serializable {
     public void setFacebookId(String facebookId) {
         this.facebookId = facebookId;
     }
+
+    /**
+     * @return current enable the user
+     */
+    public byte getEnabled() {
+        return enabled;
+    }
+
+    /**
+     * Sets the enabled the user
+     *
+     * @param enabled
+     */
+    public void setEnabled(byte enabled) {
+        this.enabled = enabled;
+    }
+
+    /**
+     * @return current role the user
+     */
+    public String getRole() {
+        return role;
+    }
+
+    /**
+     * Sets the role the user
+     *
+     * @param role
+     */
+    public void setRole(String role) {
+        this.role = role;
+    }
+
 
     /**
      * @return current user_id the user

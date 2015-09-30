@@ -9,6 +9,7 @@ import com.spilnasprava.entity.mysql.UserKey;
 import com.spilnasprava.entity.postgresql.Area;
 import com.spilnasprava.entity.postgresql.AreaKey;
 import com.spilnasprava.object.AreaType;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,6 +32,8 @@ import java.util.*;
 @Controller
 @RequestMapping(value = "/")
 public class AreaOfUserController {
+    private final static Logger logger = Logger.getLogger(AreaOfUserController.class);
+
     private final String messagesAuthenticationFailure = "Invalid username and password!";
     private final String messagesLogoutSuccess = "You've been logged out successfully.";
     private final String messagesProtectedPageAdmin = "This is protected page with the access level \"ROLE_ADMIN\"!";
@@ -63,10 +66,11 @@ public class AreaOfUserController {
                               @RequestParam(value = "logout", required = false) String logout) {
         ModelAndView modelAndView = new ModelAndView();
         if (error != null) {
+            logger.info("Pass messages on login.jsp about user input invalid data at sign in");
             modelAndView.addObject("error", messagesAuthenticationFailure);
         }
-
         if (logout != null) {
+            logger.info("Pass messages on login.jsp if user logout");
             modelAndView.addObject("msg", messagesLogoutSuccess);
         }
         modelAndView.setViewName("login");
@@ -91,6 +95,7 @@ public class AreaOfUserController {
         userKey.setUser(user);
         user.setUserKey(userKey);
 
+        logger.info("Run save User in DB");
         if (userService.addUser(user) != 0) {
             AreaKey areaKey = new AreaKey();
             areaKey.setKey(key);
@@ -98,10 +103,13 @@ public class AreaOfUserController {
             area.setAreaKeys(areaKey);
             areaService.addArea(area);
             userAreaMap.put(user, area);
+        } else {
+            logger.info("Failed save User in DB");
         }
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject("message", "This is protected page!");
         modelAndView.addObject("result", userAreaMap);
+        logger.info("Pass data on user.jsp");
         modelAndView.setViewName("user");
         return modelAndView;
     }
@@ -117,6 +125,7 @@ public class AreaOfUserController {
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject("message", messagesProtectedPageAdmin);
         modelAndView.addObject("result", getAllUsers());
+        logger.info("Pass data on admin.jsp");
         modelAndView.setViewName("admin");
         return modelAndView;
     }
@@ -130,11 +139,15 @@ public class AreaOfUserController {
      */
     public Map<User, Area> getAllUsers() {
         Map<User, Area> userMap = new HashMap<User, Area>();
+        logger.info("Run get list Users from DB");
         List<User> userList = userService.getAllUsers();
+        logger.info("Run get list Areas from DB");
         List<Area> areaList = areaService.getAllAreas();
         for (User user : userList) {
             for (Area area : areaList) {
+                logger.info("Run compare key User and Area");
                 if (user.getUserKey().getKey().toString().equals(area.getAreaKeys().getKey().toString())) {
+                    logger.info("Run unites User and Area in the Map<User, Area>");
                     userMap.put(user, area);
                     break;
                 }
@@ -155,6 +168,7 @@ public class AreaOfUserController {
         ModelAndView modelAndView = new ModelAndView();
         modelAndView.addObject("message", messagesProtectedPageUser);
         modelAndView.addObject("result", getDataUser(auth.getName()));
+        logger.info("Pass data on user.jsp");
         modelAndView.setViewName("user");
         return modelAndView;
     }
@@ -168,10 +182,13 @@ public class AreaOfUserController {
      */
     public Map<User, Area> getDataUser(String nickname) {
         Map<User, Area> userMap = new HashMap<User, Area>();
+        logger.info("Run get User by nackname");
         User user = userService.getUserByName(nickname);
         Area area = null;
         if (user != null) {
+            logger.info("Run get Area by key");
             area = areaService.getArea(user.getUserKey().getKey());
+            logger.info("Merge User and Area in Map<User, Area>");
             userMap.put(user, area);
         }
 
@@ -186,11 +203,16 @@ public class AreaOfUserController {
      * @throws IOException
      */
     @RequestMapping(value = "/signin", method = RequestMethod.GET)
-    public void getSignin(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        response.setContentType("text/html");
-        response.sendRedirect(URL_DIALOG_OAUTH + "?client_id=" + APP_ID
-                + "&redirect_uri=" + REDIRECT_URI + "&scope=" + SCOPE);
+    public void getSignin(HttpServletRequest request, HttpServletResponse response) {
+        System.getProperty("catalina.home");
+        try {
+            response.setContentType("text/html");
+            logger.info("Run request for get code user and pass this code on '/callback'");
+            response.sendRedirect(URL_DIALOG_OAUTH + "?client_id=" + APP_ID
+                    + "&redirect_uri=" + REDIRECT_URI + "&scope=" + SCOPE);
+        } catch (IOException e) {
+            logger.error("Error retrieving code : " + e.getMessage());
+        }
     }
 
     /**
@@ -200,7 +222,6 @@ public class AreaOfUserController {
      * @param response
      * @return passing to the page with the access level "ROLE_USER"
      * @throws IOException
-     * @throws FacebookException
      */
     @RequestMapping(value = "/callback", method = RequestMethod.GET)
     public ModelAndView userFromFacebook(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -208,8 +229,10 @@ public class AreaOfUserController {
         String code = request.getParameter("code");
         User user = null;
         if (code == null || code.equals("")) {
+            logger.info("Unable to get code user from facebook");
             response.sendRedirect("http://localhost:8080/login.jsp?error");
         } else {
+            logger.info("Send request for getting user access_token");
             String urlAccessToken = URL_ACCESS_TOKEN + "?client_id=" + APP_ID
                     + "&redirect_uri=" + REDIRECT_URI + "&client_secret="
                     + APP_SECRET + "&code=" + code;
@@ -218,13 +241,19 @@ public class AreaOfUserController {
             accessToken = getAccessToken(urlAccessToken);
 
             user = getUserFromFacebook(accessToken);
+            logger.info("Run get user by nackname");
             User userCheck = userService.getUserByName(user.getNickname());
             if (userCheck == null) {
+                logger.info("Save user who first login through facebook. Id user on facebook : " + user.getFacebookId());
                 Map<User, Area> userAreaMap = addUserFromFacebook(user);
                 modelAndView.addObject("result", userAreaMap);
-            } else modelAndView.addObject("result", getDataUser(user.getNickname()));
+            } else {
+                logger.info("Run get all data user");
+                modelAndView.addObject("result", getDataUser(user.getNickname()));
+            }
         }
         modelAndView.addObject("message", messagesProtectedPageUser);
+        logger.info("Pass data on user.jsp");
         modelAndView.setViewName("user");
         return modelAndView;
     }
@@ -249,6 +278,7 @@ public class AreaOfUserController {
         }
 
         bufferedReader.close();
+        logger.info("Handles string and return received code");
         return stringBuilder.toString().substring(13, stringBuilder.toString().indexOf('&'));
     }
 
@@ -258,7 +288,6 @@ public class AreaOfUserController {
      *
      * @param user
      * @return data user
-     * @throws FacebookException
      */
     public Map<User, Area> addUserFromFacebook(User user) {
         String key = UUID.randomUUID().toString();
@@ -269,6 +298,7 @@ public class AreaOfUserController {
         userKey.setUser(user);
         user.setUserKey(userKey);
 
+        logger.info("Save user in DB");
         if (userService.addUser(user) != 0) {
             Area area = new Area();
             area.setArea(AreaType.AREA1);
@@ -277,7 +307,9 @@ public class AreaOfUserController {
             areaKey.setKey(key);
             areaKey.setArea(area);
             area.setAreaKeys(areaKey);
+            logger.info("Save are in DB");
             areaService.addArea(area);
+            logger.info("Merge User and Area in Map<User, Area>");
             userAreaMap.put(user, area);
         }
         return userAreaMap;
@@ -291,10 +323,13 @@ public class AreaOfUserController {
      */
     public User getUserFromFacebook(String token) {
         DefaultFacebookClient facebookClient = new DefaultFacebookClient(accessToken);
+        logger.info("Run get info about user from facebook");
         com.restfb.types.User userRestFB = facebookClient.fetchObject("me", com.restfb.types.User.class);
+        logger.info("Run get email user from facebook");
         com.restfb.types.User userEmail = facebookClient.fetchObject("me", com.restfb.types.User.class, Parameter.with("fields", "email"));
 
         User user = new User();
+        logger.info("Establish parameter user and return user");
         user.setNickname(userRestFB.getName());
         user.setPassword(userEmail.getEmail());
         user.setFacebookId(userRestFB.getId().toString());
