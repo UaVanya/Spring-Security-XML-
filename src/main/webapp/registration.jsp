@@ -27,6 +27,7 @@
     </style>
 </head>
 <body style="text-align: center; margin: 0 auto;">
+<h1>${error}</h1>
 
 <div id="login-box">
     <h2>Enter the data for registration:</h2>
