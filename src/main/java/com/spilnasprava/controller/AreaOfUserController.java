@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.*;
@@ -32,20 +33,28 @@ import java.util.*;
 @Controller
 @RequestMapping(value = "/")
 public class AreaOfUserController {
-    private final static Logger logger = Logger.getLogger(AreaOfUserController.class);
+    private final Logger logger = Logger.getLogger(AreaOfUserController.class);
+    private String code = null;
+    private String accessToken = null;
 
     private final String messagesAuthenticationFailure = "Invalid username and password!";
     private final String messagesLogoutSuccess = "You've been logged out successfully.";
+    private final String messagesRegisteredSuccess = "You have registered successfully.";
     private final String messagesProtectedPageAdmin = "This is protected page with the access level \"ROLE_ADMIN\"!";
     private final String messagesProtectedPageUser = "This is protected page with the access level \"ROLE_USER\"!";
 
-    private String accessToken;
-    private static final String SCOPE = "email,publish_actions,user_about_me,user_birthday,user_posts,manage_pages";
-    private static final String REDIRECT_URI = "http://localhost:8080/callback";
-    private static final String APP_ID = "1045832752134158";
-    private static final String APP_SECRET = "d228b4a2a074dffdc211fcf3870eb578";
-    private static final String URL_DIALOG_OAUTH = "https://www.facebook.com/dialog/oauth";
-    private static final String URL_ACCESS_TOKEN = "https://graph.facebook.com/oauth/access_token";
+    private final String messageErrorRetrievingFromFacebook = "Unable to obtain data from Facebook. Try again.";
+    private final String messageErrorGetCodeFromFacebook = "Unable to get code user from facebook";
+    private final String messageErrorRegistration = "An error occurred while save data. Try again.";
+    private final String messageErrorGetAllUser = "Does not match number of lists the user and area obtained from the database. "
+            + "Maybe the resulting data were previously not correctly recorded in the database";
+
+    private final String SCOPE = "email,publish_actions,user_about_me,user_birthday,user_posts,manage_pages";
+    private final String REDIRECT_URI = "http://localhost:8080/signin";
+    private final String APP_ID = "1045832752134158";
+    private final String APP_SECRET = "d228b4a2a074dffdc211fcf3870eb578";
+    private final String URL_DIALOG_OAUTH = "https://www.facebook.com/dialog/oauth";
+    private final String URL_ACCESS_TOKEN = "https://graph.facebook.com/oauth/access_token";
 
     @Autowired
     private UserService userService;
@@ -104,14 +113,10 @@ public class AreaOfUserController {
             areaService.addArea(area);
             userAreaMap.put(user, area);
         } else {
-            logger.info("Failed save User in DB");
+            logger.debug("Failed save User in DB");
+            return sendErrorMessageToInterface("registration", messageErrorRegistration);
         }
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.addObject("message", "This is protected page!");
-        modelAndView.addObject("result", userAreaMap);
-        logger.info("Pass data on user.jsp");
-        modelAndView.setViewName("user");
-        return modelAndView;
+        return sendUserDataToInterface("user", messagesRegisteredSuccess, userAreaMap);
     }
 
     /**
@@ -122,12 +127,11 @@ public class AreaOfUserController {
      */
     @RequestMapping(value = "/admin", produces = "application/json", method = RequestMethod.GET)
     public ModelAndView getUsers() throws IOException {
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.addObject("message", messagesProtectedPageAdmin);
-        modelAndView.addObject("result", getAllUsers());
-        logger.info("Pass data on admin.jsp");
-        modelAndView.setViewName("admin");
-        return modelAndView;
+        Map<User, Area> userAreaMap = getAllUsers();
+        if (userAreaMap == null) {
+            return sendErrorMessageToInterface("admin", messageErrorGetAllUser);
+        }
+        return sendUserDataToInterface("admin", messagesProtectedPageAdmin, userAreaMap);
     }
 
     /**
@@ -143,13 +147,17 @@ public class AreaOfUserController {
         List<User> userList = userService.getAllUsers();
         logger.info("Run get list Areas from DB");
         List<Area> areaList = areaService.getAllAreas();
-        for (User user : userList) {
-            for (Area area : areaList) {
-                logger.info("Run compare key User and Area");
-                if (user.getUserKey().getKey().toString().equals(area.getAreaKeys().getKey().toString())) {
-                    logger.info("Run unites User and Area in the Map<User, Area>");
-                    userMap.put(user, area);
-                    break;
+        if (userList.size() == 0 && areaList.size() > 0 || userList.size() > 0 && areaList.size() == 0) {
+            userMap = null;
+        } else {
+            for (User user : userList) {
+                for (Area area : areaList) {
+                    logger.info("Run compare key User and Area");
+                    if (user.getUserKey().getKey().toString().equals(area.getAreaKeys().getKey().toString())) {
+                        logger.info("Run unites User and Area in the Map<User, Area>");
+                        userMap.put(user, area);
+                        break;
+                    }
                 }
             }
         }
@@ -164,13 +172,8 @@ public class AreaOfUserController {
     @RequestMapping(value = "/user", produces = "application/json", method = RequestMethod.GET)
     public ModelAndView getUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        ModelAndView modelAndView = new ModelAndView();
-        modelAndView.addObject("message", messagesProtectedPageUser);
-        modelAndView.addObject("result", getDataUser(auth.getName()));
-        logger.info("Pass data on user.jsp");
-        modelAndView.setViewName("user");
-        return modelAndView;
+        Map<User, Area> userMap = getDataUser(auth.getName());
+        return sendUserDataToInterface("user", messagesProtectedPageUser, userMap);
     }
 
     /**
@@ -191,28 +194,7 @@ public class AreaOfUserController {
             logger.info("Merge User and Area in Map<User, Area>");
             userMap.put(user, area);
         }
-
         return userMap;
-    }
-
-    /**
-     * Performs a redirect to the login page on Facebook
-     *
-     * @param request
-     * @param response
-     * @throws IOException
-     */
-    @RequestMapping(value = "/signin", method = RequestMethod.GET)
-    public void getSignin(HttpServletRequest request, HttpServletResponse response) {
-        System.getProperty("catalina.home");
-        try {
-            response.setContentType("text/html");
-            logger.info("Run request for get code user and pass this code on '/callback'");
-            response.sendRedirect(URL_DIALOG_OAUTH + "?client_id=" + APP_ID
-                    + "&redirect_uri=" + REDIRECT_URI + "&scope=" + SCOPE);
-        } catch (IOException e) {
-            logger.error("Error retrieving code : " + e.getMessage());
-        }
     }
 
     /**
@@ -223,39 +205,56 @@ public class AreaOfUserController {
      * @return passing to the page with the access level "ROLE_USER"
      * @throws IOException
      */
-    @RequestMapping(value = "/callback", method = RequestMethod.GET)
-    public ModelAndView userFromFacebook(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        ModelAndView modelAndView = new ModelAndView();
-        String code = request.getParameter("code");
+    @RequestMapping(value = "/signin", method = RequestMethod.GET)
+    public ModelAndView userFromFacebook(HttpServletRequest request, HttpServletResponse response, ModelAndView view) {
+        Map<User, Area> userAreaMap = null;
         User user = null;
+
+        code = request.getParameter("code");
+        if (code == null) {
+            try {
+                response.setContentType("text/html");
+                logger.info("Run request for get code user and pass this code on '/callback'");
+                response.sendRedirect(URL_DIALOG_OAUTH + "?client_id=" + APP_ID
+                        + "&redirect_uri=" + REDIRECT_URI + "&scope=" + SCOPE);
+            } catch (IOException e) {
+                logger.error("Error retrieving code : " + e.getMessage());
+                return sendErrorMessageToInterface("login", messageErrorRetrievingFromFacebook);
+            }
+        }
+
         if (code == null || code.equals("")) {
-            logger.info("Unable to get code user from facebook");
-            response.sendRedirect("http://localhost:8080/login.jsp?error");
+            logger.info(messageErrorGetCodeFromFacebook);
+            return sendErrorMessageToInterface("login", messageErrorGetCodeFromFacebook);
         } else {
             logger.info("Send request for getting user access_token");
             String urlAccessToken = URL_ACCESS_TOKEN + "?client_id=" + APP_ID
                     + "&redirect_uri=" + REDIRECT_URI + "&client_secret="
                     + APP_SECRET + "&code=" + code;
             response.setContentType("text/html");
-
             accessToken = getAccessToken(urlAccessToken);
+
+            if (accessToken == null) {
+                logger.error("Unable to get access token user from facebook");
+                return sendErrorMessageToInterface("login", messageErrorRetrievingFromFacebook);
+            }
 
             user = getUserFromFacebook(accessToken);
             logger.info("Run get user by nackname");
-            User userCheck = userService.getUserByName(user.getNickname());
-            if (userCheck == null) {
+
+            if (userService.getUserByName(user.getNickname()) == null) {
                 logger.info("Save user who first login through facebook. Id user on facebook : " + user.getFacebookId());
-                Map<User, Area> userAreaMap = addUserFromFacebook(user);
-                modelAndView.addObject("result", userAreaMap);
+                userAreaMap = addUserFromFacebook(user);
+                if (userAreaMap == null) {
+                    return sendErrorMessageToInterface("login", messageErrorRegistration);
+                }
             } else {
                 logger.info("Run get all data user");
-                modelAndView.addObject("result", getDataUser(user.getNickname()));
+                userAreaMap = getDataUser(user.getNickname());
             }
         }
-        modelAndView.addObject("message", messagesProtectedPageUser);
-        logger.info("Pass data on user.jsp");
-        modelAndView.setViewName("user");
-        return modelAndView;
+        logger.info("Pass data for display on the UI");
+        return sendUserDataToInterface("user", messagesProtectedPageUser, userAreaMap);
     }
 
     /**
@@ -265,21 +264,32 @@ public class AreaOfUserController {
      * @return access token user
      * @throws IOException
      */
-    public String getAccessToken(String urlAccessToken) throws IOException {
-        URL url = new URL(urlAccessToken);
-        URLConnection urlConnection = url.openConnection();
-        urlConnection.setConnectTimeout(10000);
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-
-        String inputLine;
-        StringBuilder stringBuilder = new StringBuilder();
-        while ((inputLine = bufferedReader.readLine()) != null) {
-            stringBuilder.append(inputLine + "\n");
+    public String getAccessToken(String urlAccessToken) {
+        String token = null;
+        URL url = null;
+        URLConnection urlConnection = null;
+        try {
+            url = new URL(urlAccessToken);
+        } catch (MalformedURLException e) {
+            logger.error(e);
         }
+        try {
+            urlConnection = url.openConnection();
+            urlConnection.setConnectTimeout(10000);
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
 
-        bufferedReader.close();
+            String inputLine;
+            StringBuilder stringBuilder = new StringBuilder();
+            while ((inputLine = bufferedReader.readLine()) != null) {
+                stringBuilder.append(inputLine + "\n");
+            }
+            token = stringBuilder.toString().substring(13, stringBuilder.toString().indexOf('&'));
+            bufferedReader.close();
+        } catch (IOException e) {
+            logger.error(e);
+        }
         logger.info("Handles string and return received code");
-        return stringBuilder.toString().substring(13, stringBuilder.toString().indexOf('&'));
+        return token;
     }
 
     /**
@@ -291,7 +301,7 @@ public class AreaOfUserController {
      */
     public Map<User, Area> addUserFromFacebook(User user) {
         String key = UUID.randomUUID().toString();
-        Map<User, Area> userAreaMap = new HashMap<User, Area>();
+        Map<User, Area> userAreaMap = null;
 
         UserKey userKey = new UserKey();
         userKey.setKey(key);
@@ -310,7 +320,10 @@ public class AreaOfUserController {
             logger.info("Save are in DB");
             areaService.addArea(area);
             logger.info("Merge User and Area in Map<User, Area>");
+            userAreaMap = new HashMap<User, Area>();
             userAreaMap.put(user, area);
+        } else {
+            logger.debug("Failed save User from facebook in DB");
         }
         return userAreaMap;
     }
@@ -334,5 +347,32 @@ public class AreaOfUserController {
         user.setPassword(userEmail.getEmail());
         user.setFacebookId(userRestFB.getId().toString());
         return user;
+    }
+
+    /**
+     * Redirect error message on interface
+     *
+     * @param error
+     * @return error message on interface
+     */
+    public ModelAndView sendErrorMessageToInterface(String pathToInterface, String error) {
+        return new ModelAndView(pathToInterface, "error", error);
+    }
+
+    /**
+     * Redirect user data and message on interface
+     *
+     * @param pathToInterface
+     * @param message
+     * @param userAreaMap
+     * @return modelAndView
+     */
+    public ModelAndView sendUserDataToInterface(String pathToInterface, String message, Map<User, Area> userAreaMap) {
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.addObject("message", message);
+        modelAndView.addObject("result", userAreaMap);
+        modelAndView.setViewName(pathToInterface);
+        logger.info("Pass data for display on the UI");
+        return modelAndView;
     }
 }
