@@ -27,6 +27,15 @@ public enum AreaType {
     }
 
     /**
+     * Establish value
+     *
+     * @param value
+     */
+    public void setValue(int value) {
+        this.value = value;
+    }
+
+    /**
      * Compares the value of the index, and returns its value.
      *
      * @param value

@@ -18,7 +18,7 @@ public class User implements Serializable {
     private String email;
     private String facebookId;
     private byte enabled = 1;
-    private String role = UserRole.ROLE_USER.name();
+    private UserRole role = UserRole.ROLE_USER;
     private UserKey userKey;
 
     /**
@@ -140,7 +140,8 @@ public class User implements Serializable {
     /**
      * @return current role the user
      */
-    public String getRole() {
+    @Enumerated(EnumType.STRING)
+    public UserRole getRole() {
         return role;
     }
 
@@ -149,10 +150,9 @@ public class User implements Serializable {
      *
      * @param role
      */
-    public void setRole(String role) {
+    public void setRole(UserRole role) {
         this.role = role;
     }
-
 
     /**
      * @return current user_id the user

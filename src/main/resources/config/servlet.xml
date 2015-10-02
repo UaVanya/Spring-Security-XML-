@@ -16,4 +16,13 @@
 
     <import resource="spring-security-config.xml"/>
 
+    <bean id="messageSource"
+          class="org.springframework.context.support.ResourceBundleMessageSource">
+        <property name="basename" value="messages" />
+    </bean>
+
+    <bean id="fbConfigSource"
+          class="org.springframework.context.support.ResourceBundleMessageSource">
+        <property name="basename" value="fbconfig" />
+    </bean>
 </beans>

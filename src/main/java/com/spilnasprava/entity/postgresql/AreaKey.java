@@ -13,7 +13,7 @@ import java.io.Serializable;
 public class AreaKey implements Serializable {
     private long id;
     private String key;
-    @Column(name = "area_id")
+//    @Column(name = "area_id")
     private Area area;
 
     /**

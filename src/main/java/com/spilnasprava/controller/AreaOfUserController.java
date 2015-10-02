@@ -11,6 +11,7 @@ import com.spilnasprava.entity.postgresql.AreaKey;
 import com.spilnasprava.object.AreaType;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
@@ -37,24 +38,11 @@ public class AreaOfUserController {
     private String code = null;
     private String accessToken = null;
 
-    private final String messagesAuthenticationFailure = "Invalid username and password!";
-    private final String messagesLogoutSuccess = "You've been logged out successfully.";
-    private final String messagesRegisteredSuccess = "You have registered successfully.";
-    private final String messagesProtectedPageAdmin = "This is protected page with the access level \"ROLE_ADMIN\"!";
-    private final String messagesProtectedPageUser = "This is protected page with the access level \"ROLE_USER\"!";
+    @Autowired
+    private MessageSource messageSource;
 
-    private final String messageErrorRetrievingFromFacebook = "Unable to obtain data from Facebook. Try again.";
-    private final String messageErrorGetCodeFromFacebook = "Unable to get code user from facebook";
-    private final String messageErrorRegistration = "An error occurred while save data. Try again.";
-    private final String messageErrorGetAllUser = "Does not match number of lists the user and area obtained from the database. "
-            + "Maybe the resulting data were previously not correctly recorded in the database";
-
-    private final String SCOPE = "email,publish_actions,user_about_me,user_birthday,user_posts,manage_pages";
-    private final String REDIRECT_URI = "http://localhost:8080/signin";
-    private final String APP_ID = "1045832752134158";
-    private final String APP_SECRET = "d228b4a2a074dffdc211fcf3870eb578";
-    private final String URL_DIALOG_OAUTH = "https://www.facebook.com/dialog/oauth";
-    private final String URL_ACCESS_TOKEN = "https://graph.facebook.com/oauth/access_token";
+    @Autowired
+    private MessageSource fbConfigSource;
 
     @Autowired
     private UserService userService;
@@ -75,12 +63,10 @@ public class AreaOfUserController {
                               @RequestParam(value = "logout", required = false) String logout) {
         ModelAndView modelAndView = new ModelAndView();
         if (error != null) {
-            logger.info("Pass messages on login.jsp about user input invalid data at sign in");
-            modelAndView.addObject("error", messagesAuthenticationFailure);
+            modelAndView.addObject("error", messageSource.getMessage("message.authentication.failure", null, Locale.ENGLISH));
         }
         if (logout != null) {
-            logger.info("Pass messages on login.jsp if user logout");
-            modelAndView.addObject("msg", messagesLogoutSuccess);
+            modelAndView.addObject("msg", messageSource.getMessage("message.logout.success", null, Locale.ENGLISH));
         }
         modelAndView.setViewName("login");
         return modelAndView;
@@ -104,7 +90,6 @@ public class AreaOfUserController {
         userKey.setUser(user);
         user.setUserKey(userKey);
 
-        logger.info("Run save User in DB");
         if (userService.addUser(user) != 0) {
             AreaKey areaKey = new AreaKey();
             areaKey.setKey(key);
@@ -114,9 +99,9 @@ public class AreaOfUserController {
             userAreaMap.put(user, area);
         } else {
             logger.debug("Failed save User in DB");
-            return sendErrorMessageToInterface("registration", messageErrorRegistration);
+            return sendErrorMessageToInterface("registration", messageSource.getMessage("messages.er", null, Locale.ENGLISH));
         }
-        return sendUserDataToInterface("user", messagesRegisteredSuccess, userAreaMap);
+        return sendUserDataToInterface("user", messageSource.getMessage("message.registered.success", null, Locale.ENGLISH), userAreaMap);
     }
 
     /**
@@ -129,9 +114,9 @@ public class AreaOfUserController {
     public ModelAndView getUsers() throws IOException {
         Map<User, Area> userAreaMap = getAllUsers();
         if (userAreaMap == null) {
-            return sendErrorMessageToInterface("admin", messageErrorGetAllUser);
+            return sendErrorMessageToInterface("admin", messageSource.getMessage("message.error.get.all.user", null, Locale.ENGLISH));
         }
-        return sendUserDataToInterface("admin", messagesProtectedPageAdmin, userAreaMap);
+        return sendUserDataToInterface("admin", messageSource.getMessage("message.protected.page.admin", null, Locale.ENGLISH), userAreaMap);
     }
 
     /**
@@ -143,18 +128,15 @@ public class AreaOfUserController {
      */
     public Map<User, Area> getAllUsers() {
         Map<User, Area> userMap = new HashMap<User, Area>();
-        logger.info("Run get list Users from DB");
         List<User> userList = userService.getAllUsers();
-        logger.info("Run get list Areas from DB");
         List<Area> areaList = areaService.getAllAreas();
         if (userList.size() == 0 && areaList.size() > 0 || userList.size() > 0 && areaList.size() == 0) {
+            logger.debug("Does not match number of lists the user and area obtained from the database");
             userMap = null;
         } else {
             for (User user : userList) {
                 for (Area area : areaList) {
-                    logger.info("Run compare key User and Area");
                     if (user.getUserKey().getKey().toString().equals(area.getAreaKeys().getKey().toString())) {
-                        logger.info("Run unites User and Area in the Map<User, Area>");
                         userMap.put(user, area);
                         break;
                     }
@@ -173,7 +155,7 @@ public class AreaOfUserController {
     public ModelAndView getUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Map<User, Area> userMap = getDataUser(auth.getName());
-        return sendUserDataToInterface("user", messagesProtectedPageUser, userMap);
+        return sendUserDataToInterface("user", messageSource.getMessage("message.protected.page.user", null, Locale.ENGLISH), userMap);
     }
 
     /**
@@ -185,13 +167,10 @@ public class AreaOfUserController {
      */
     public Map<User, Area> getDataUser(String nickname) {
         Map<User, Area> userMap = new HashMap<User, Area>();
-        logger.info("Run get User by nackname");
         User user = userService.getUserByName(nickname);
         Area area = null;
         if (user != null) {
-            logger.info("Run get Area by key");
             area = areaService.getArea(user.getUserKey().getKey());
-            logger.info("Merge User and Area in Map<User, Area>");
             userMap.put(user, area);
         }
         return userMap;
@@ -215,46 +194,48 @@ public class AreaOfUserController {
             try {
                 response.setContentType("text/html");
                 logger.info("Run request for get code user and pass this code on '/callback'");
-                response.sendRedirect(URL_DIALOG_OAUTH + "?client_id=" + APP_ID
-                        + "&redirect_uri=" + REDIRECT_URI + "&scope=" + SCOPE);
+                response.sendRedirect(fbConfigSource.getMessage("url.dialog.oauth", null, Locale.ENGLISH)
+                        + "?client_id=" + fbConfigSource.getMessage("app.id", null, Locale.ENGLISH)
+                        + "&redirect_uri=" + fbConfigSource.getMessage("redirect.url", null, Locale.ENGLISH)
+                        + "&scope=" + fbConfigSource.getMessage("scope", null, Locale.ENGLISH));
             } catch (IOException e) {
                 logger.error("Error retrieving code : " + e.getMessage());
-                return sendErrorMessageToInterface("login", messageErrorRetrievingFromFacebook);
+                return sendErrorMessageToInterface("login", messageSource.getMessage("message.error.retrieving.from.facebook", null, Locale.ENGLISH));
             }
         }
 
         if (code == null || code.equals("")) {
-            logger.info(messageErrorGetCodeFromFacebook);
-            return sendErrorMessageToInterface("login", messageErrorGetCodeFromFacebook);
+            logger.info("Unable to get code user from facebook");
+            return sendErrorMessageToInterface("login", messageSource.getMessage("message.error.get.code.from.facebook", null, Locale.ENGLISH));
         } else {
             logger.info("Send request for getting user access_token");
-            String urlAccessToken = URL_ACCESS_TOKEN + "?client_id=" + APP_ID
-                    + "&redirect_uri=" + REDIRECT_URI + "&client_secret="
-                    + APP_SECRET + "&code=" + code;
+            String urlAccessToken = fbConfigSource.getMessage("url.access.token", null, Locale.ENGLISH)
+                    + "?client_id=" + fbConfigSource.getMessage("app.id", null, Locale.ENGLISH)
+                    + "&redirect_uri=" + fbConfigSource.getMessage("redirect.url", null, Locale.ENGLISH)
+                    + "&client_secret="+ fbConfigSource.getMessage("app.secret", null, Locale.ENGLISH)
+                    + "&code=" + code;
             response.setContentType("text/html");
             accessToken = getAccessToken(urlAccessToken);
 
             if (accessToken == null) {
                 logger.error("Unable to get access token user from facebook");
-                return sendErrorMessageToInterface("login", messageErrorRetrievingFromFacebook);
+                return sendErrorMessageToInterface("login", messageSource.getMessage("message.error.retrieving.from.facebook", null, Locale.ENGLISH));
             }
 
             user = getUserFromFacebook(accessToken);
-            logger.info("Run get user by nackname");
 
             if (userService.getUserByName(user.getNickname()) == null) {
                 logger.info("Save user who first login through facebook. Id user on facebook : " + user.getFacebookId());
                 userAreaMap = addUserFromFacebook(user);
                 if (userAreaMap == null) {
-                    return sendErrorMessageToInterface("login", messageErrorRegistration);
+                    return sendErrorMessageToInterface("login", messageSource.getMessage("message.error.registration", null, Locale.ENGLISH));
                 }
             } else {
                 logger.info("Run get all data user");
                 userAreaMap = getDataUser(user.getNickname());
             }
         }
-        logger.info("Pass data for display on the UI");
-        return sendUserDataToInterface("user", messagesProtectedPageUser, userAreaMap);
+        return sendUserDataToInterface("user", messageSource.getMessage("message.protected.page.user", null, Locale.ENGLISH), userAreaMap);
     }
 
     /**
@@ -288,7 +269,7 @@ public class AreaOfUserController {
         } catch (IOException e) {
             logger.error(e);
         }
-        logger.info("Handles string and return received code");
+//        logger.info("Handles string and return received code");
         return token;
     }
 
@@ -308,7 +289,6 @@ public class AreaOfUserController {
         userKey.setUser(user);
         user.setUserKey(userKey);
 
-        logger.info("Save user in DB");
         if (userService.addUser(user) != 0) {
             Area area = new Area();
             area.setArea(AreaType.AREA1);
@@ -317,9 +297,7 @@ public class AreaOfUserController {
             areaKey.setKey(key);
             areaKey.setArea(area);
             area.setAreaKeys(areaKey);
-            logger.info("Save are in DB");
             areaService.addArea(area);
-            logger.info("Merge User and Area in Map<User, Area>");
             userAreaMap = new HashMap<User, Area>();
             userAreaMap.put(user, area);
         } else {
