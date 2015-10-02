@@ -38,6 +38,7 @@ public class UserServiceImpl implements UserService {
      * Save User in DB.
      *
      * @param user
+     * @return id user
      */
     public long addUser(User user) {
         return userDAO.addUser(user);

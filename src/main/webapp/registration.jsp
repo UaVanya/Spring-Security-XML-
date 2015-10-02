@@ -26,7 +26,8 @@
         }
     </style>
 </head>
-<body>
+<body style="text-align: center; margin: 0 auto;">
+<h1>${error}</h1>
 
 <div id="login-box">
     <h2>Enter the data for registration:</h2>
@@ -44,10 +45,10 @@
                 </td>
             </tr>
             <tr>
-                <td><input type="text" name="name" maxlength="45" required placeholder="Name"/></td>
+                <td><input type="text" name="name" maxlength="45" placeholder="Name"/></td>
             </tr>
             <tr>
-                <td><input type="email" name="email" maxlength="45" required placeholder="E-mail"></td>
+                <td><input type="email" name="email" maxlength="45" placeholder="E-mail"></td>
             </tr>
             <tr>
                 <td>Select area: <input type="radio" name="area" id="area1" value="AREA1"><label

@@ -11,7 +11,7 @@
     <title>index</title>
 </head>
 <body bgcolor="#fafad2">
-<h1>Message : ${message}</h1>
+<h1>Message : ${message} ${error}</h1>
 
 <c:url value="/login" var="logoutUrl"/>
 
@@ -75,6 +75,5 @@
         }
     %>
 </table>
-
 </body>
 </html>

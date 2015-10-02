@@ -17,10 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
@@ -92,11 +89,13 @@ public class TestAreaOfUserController {
 
     @Test
     public void testAddUser() throws IOException {
+        when(userService.addUser(user)).thenReturn(user.getId());
+        when(areaService.addArea(area)).thenReturn(area.getId());
         when(userService.getAllUsers()).thenReturn(userList);
         when(areaService.getAllAreas()).thenReturn(areaList);
 
-        User userFromController = (User) controller.addUser(user, area).getModel().get("result");
-        assertThat(user, is(userFromController));
+        Map<User, Area> userAreaMap = (Map<User, Area>) controller.addUser(user, area).getModel().get("result");
+        assertThat(userMap, is(userAreaMap));
     }
 
     @Test
@@ -133,5 +132,19 @@ public class TestAreaOfUserController {
         Map<User, Area> userAreaMap = controller.getDataUser(user.getNickname());
 
         assertThat(userMap, is(userAreaMap));
+    }
+
+    @Test
+    public void testAddUserFromFacebook() {
+        when(userService.addUser(user)).thenReturn(user.getId());
+        Map<User, Area> userAreaMap = controller.addUserFromFacebook(user);
+        User userFromFacebook = new User();
+        if (!userAreaMap.isEmpty()) {
+            Set<User> userSet = (Set<User>) userAreaMap.keySet();
+            for (User iterUser : userSet) {
+                userFromFacebook = iterUser;
+            }
+        }
+        assertThat(user, is(userFromFacebook));
     }
 }
