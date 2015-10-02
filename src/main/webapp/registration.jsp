@@ -51,7 +51,7 @@
                 <td><input type="email" name="email" maxlength="45" placeholder="E-mail"></td>
             </tr>
             <tr>
-                <td>Select area: <input type="radio" name="area" id="area1" value="AREA1"><label
+                <td>Select area: <input type="radio" name="area" id="area1" value="AREA1" required><label
                         for="area1">Area1</label>
                     <input type="radio" name="area" id="area2" value="AREA2"><label for="area2">Area2</label>
                     <input type="radio" name="area" id="area3" value="AREA3"><label for="area3">Area3</label></td>

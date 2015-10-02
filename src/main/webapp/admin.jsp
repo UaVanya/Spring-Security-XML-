@@ -37,7 +37,7 @@
 
 <table align="center" border="0" width="300">
     <tr border="0">
-        <td border="0"><a href="WEB-INF/pages/adduser.jsp">Add user</a></td>
+        <td border="0"><a href="registration.jsp">Add user</a></td>
     </tr>
 </table>
 

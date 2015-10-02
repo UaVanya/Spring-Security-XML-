@@ -76,11 +76,10 @@
         <input type="submit" name="enter" value="Facebook Login"/>
     </form>
 </sec:authorize>
-<sec:authorize access="isAuthenticated()">
-    <form action="/login?logout" method="get" name="formFacebook">
-        <input type="submit" name="enter" value="Logout"/>
-    </form>
-</sec:authorize>
+
+<form action="/registration.jsp" method="get" name="formFacebook">
+    <input type="submit" name="enter" value="Register"/>
+</form>
 
 </body>
 </html>
