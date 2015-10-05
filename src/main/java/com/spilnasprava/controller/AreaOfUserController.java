@@ -2,6 +2,7 @@ package com.spilnasprava.controller;
 
 import com.restfb.DefaultFacebookClient;
 import com.restfb.Parameter;
+import com.spilnasprava.ConfigLogging;
 import com.spilnasprava.business.service.AreaService;
 import com.spilnasprava.business.service.UserService;
 import com.spilnasprava.entity.mysql.User;
@@ -186,6 +187,8 @@ public class AreaOfUserController {
      */
     @RequestMapping(value = "/signin", method = RequestMethod.GET)
     public ModelAndView userFromFacebook(HttpServletRequest request, HttpServletResponse response, ModelAndView view) {
+        ConfigLogging configLogging = new ConfigLogging();
+        configLogging.init();
         Map<User, Area> userAreaMap = null;
         User user = null;
 

@@ -7,9 +7,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
-/**
- * Created by VJKL on 04.10.2015.
- */
 public class ConfigLogging {
     private static Properties logProperty = new Properties();
     private final String logPropertiesConsole = "src/main/resources/log4j-console.properties";
@@ -35,7 +32,7 @@ public class ConfigLogging {
                 e.printStackTrace();
             }
         }
-        String path = getPathConfigFile();
+        String path = getPathFileLog();
         PropertyConfigurator.configure(path);
     }
 
