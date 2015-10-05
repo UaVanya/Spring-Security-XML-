@@ -16,33 +16,29 @@ public class ConfigLogging {
         String catalinaLog4J = System.getenv("CATALINA_LOG4J");
         if (catalinaLog4J != null) ;
         if (catalinaLog4J.equals("true")) {
-            File file = new File(logPropertiesConsole);
-            String ss = file.getAbsolutePath();
-            try {
-                logProperty.load(new FileInputStream(logPropertiesConsole));
-                PropertyConfigurator.configure(logProperty);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else if (false) {
-            try {
-                logProperty.load(new FileInputStream(logPropertiesFile));
-                PropertyConfigurator.configure(logProperty);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            setLogProperty(logPropertiesConsole);
+        } else if (catalinaLog4J.equals("false")) {
+            setLogProperty(logPropertiesFile);
         }
-        String path = getPathFileLog();
-        PropertyConfigurator.configure(path);
+        PropertyConfigurator.configure(getPathFileLog());
     }
 
     public String getPathFileLog() {
         String env = System.getenv("CATALINA_LOG4J");
         if (env.equals("true")) {
             return new File(logPropertiesConsole).getAbsoluteFile().toString();
-        } else {
+        } else if (env.equals("false")) {
             return new File(logPropertiesFile).getAbsoluteFile().toString();
         }
+        return null;
     }
 
+    public void setLogProperty(String pathLogProperties) {
+        try (FileInputStream fileInputStream = new FileInputStream(pathLogProperties);) {
+            logProperty.load(fileInputStream);
+            PropertyConfigurator.configure(logProperty);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
