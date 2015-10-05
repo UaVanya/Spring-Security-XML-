@@ -12,6 +12,7 @@ import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import org.springframework.context.MessageSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.ModelAndView;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.*;
  */
 @RunWith(MockitoJUnitRunner.class)
 public class TestAreaOfUserController {
+
     private static Map<User, Area> userMap = new HashMap<User, Area>();
     private static User user = new User();
     private static UserKey userKey = new UserKey();
@@ -36,12 +38,21 @@ public class TestAreaOfUserController {
     private static AreaKey areaKey = new AreaKey();
     private static List<User> userList = new ArrayList<User>();
     private static List<Area> areaList = new ArrayList<Area>();
+    private final String path = "path";
+    private final String message = "message";
+
 
     @Mock
     private UserService userService;
 
     @Mock
     private AreaService areaService;
+
+    @Mock
+    private MessageSource messageSource;
+
+    @Mock
+    private MessageSource fbConfigSource;
 
     @InjectMocks
     private AreaOfUserController controller;
@@ -75,15 +86,22 @@ public class TestAreaOfUserController {
     }
 
     @Test
-    public void testLogin() {
+    public void testLoginError() {
         String messagesAuthenticationFailure = "Invalid username and password!";
-        String messagesLogoutSuccess = "You've been logged out successfully.";
-
+        when(messageSource.getMessage("message.authentication.failure", null, Locale.ENGLISH)).thenReturn(messagesAuthenticationFailure);
         ModelAndView model = controller.login("error", "logout");
         String messageError = (String) model.getModel().get("error");
-        String messageLogout = (String) model.getModel().get("msg");
 
         assertThat(messagesAuthenticationFailure, is(messageError));
+    }
+
+    @Test
+    public void testLoginMsg() {
+        String messagesLogoutSuccess = "You've been logged out successfully.";
+        when(messageSource.getMessage("message.logout.success", null, Locale.ENGLISH)).thenReturn(messagesLogoutSuccess);
+        ModelAndView model = controller.login("error", "logout");
+        String messageLogout = (String) model.getModel().get("msg");
+
         assertThat(messagesLogoutSuccess, is(messageLogout));
     }
 
@@ -146,5 +164,21 @@ public class TestAreaOfUserController {
             }
         }
         assertThat(user, is(userFromFacebook));
+    }
+
+    @Test
+    public void testSendErrorMessageToInterface() {
+        ModelAndView modelAndView= controller.sendErrorMessageToInterface(path, message);
+        String messageFromContrroler = (String) modelAndView.getModel().get("error");
+
+        assertThat(messageFromContrroler, is(message));
+    }
+
+    @Test
+    public void testSendUserDataToInterface() {
+        ModelAndView modelAndView= controller.sendUserDataToInterface(path, message, userMap);
+        Map<User, Area> userAreaMap = (Map<User, Area>) modelAndView.getModel().get("result");
+
+        assertThat(userAreaMap, is(userMap));
     }
 }

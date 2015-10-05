@@ -46,4 +46,7 @@ http://www.springframework.org/schema/mvc http://www.springframework.org/schema/
 
     <bean id="userDao" class="com.spilnasprava.business.dao.impl.UserDaoImpl"></bean>
     <bean id="userService" class="com.spilnasprava.business.service.impl.UserServiceImpl"></bean>
+	
+    <bean id="configLogging" class="com.spilnasprava.config.ConfigLogging"></bean>
+
 </beans>
