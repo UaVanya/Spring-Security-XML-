@@ -1,5 +1,5 @@
-import com.spilnasprava.entity.mysql.User;
-import com.spilnasprava.entity.mysql.UserKey;
+package com.spilnasprava.entity.mysql;
+
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;

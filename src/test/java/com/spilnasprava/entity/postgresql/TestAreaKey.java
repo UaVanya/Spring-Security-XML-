@@ -1,5 +1,5 @@
-import com.spilnasprava.entity.postgresql.Area;
-import com.spilnasprava.entity.postgresql.AreaKey;
+package com.spilnasprava.entity.postgresql;
+
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.is;

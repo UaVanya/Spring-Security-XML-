@@ -1,4 +1,5 @@
-import com.spilnasprava.object.AreaType;
+package com.spilnasprava.object;
+
 import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.*;
