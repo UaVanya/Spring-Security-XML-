@@ -126,8 +126,18 @@ public class TestAreaOfUserController {
         assertThat(userMap, is(userAreaMap));
     }
 
-    @Test
+	    @Test
     public void testGetDataUser() {
+        when(userService.getUserByName(user.getNickname())).thenReturn(user);
+        when(areaService.getArea(area.getAreaKeys().getKey())).thenReturn(area);
+        Map<User, Area> userAreaMap = controller.getDataUser(user.getNickname());
+
+        assertThat(userMap, is(userAreaMap));
+    }
+	
+    @Test
+    public void testLazha() {
+        user.setName("NameLazhA");
         when(userService.getUserByName(user.getNickname())).thenReturn(user);
         when(areaService.getArea(area.getAreaKeys().getKey())).thenReturn(area);
         Map<User, Area> userAreaMap = controller.getDataUser(user.getNickname());
